@@ -2,7 +2,6 @@
 pragma solidity ^0.8.4;
 
 import "@openzeppelin/contracts/token/ERC721/ERC721.sol";
-import "./NFT.sol";
 import "@openzeppelin/contracts/security/ReentrancyGuard.sol";
 import "@openzeppelin/contracts/utils/Counters.sol";
 import "@openzeppelin/contracts/access/Ownable.sol";
@@ -15,19 +14,20 @@ contract Marketplace is ReentrancyGuard, Ownable {
     Counters.Counter private _tokensCanceled;
 
     address payable private owners;
-    address[] public whitelistedNFTs;
-    bool public onlyWhitelisted = true;
+    bool public isAllowListActive = false;    
 
     // Challenge: make this price dynamic according to the current currency price
     uint256 private listingFee = 0.045 ether;
 
     mapping(uint256 => MarketItem) private marketItemIdToMarketItem;
 
+//Checking
+    mapping(address => uint256) private _allowList;
+
     struct MarketItem {
         uint256 marketItemId;
         address nftContractAddress;
         uint256 tokenId;
-        address payable creator;
         address payable seller;
         address payable owners;
         uint256 price;
@@ -39,7 +39,6 @@ contract Marketplace is ReentrancyGuard, Ownable {
         uint256 indexed marketItemId,
         address indexed nftContract,
         uint256 indexed tokenId,
-        address creator,
         address seller,
         address owners,
         uint256 price,
@@ -55,20 +54,15 @@ contract Marketplace is ReentrancyGuard, Ownable {
         return listingFee;
     }
 
-    function whitelistNFTs(address[] calldata _NftContracts) public onlyOwner {
-
-        delete whitelistedNFTs;
-        whitelistedNFTs = _NftContracts;
+    function setAllowList(address[] calldata addresses, uint8 numAllowedToMint) external onlyOwner {
+        for (uint256 i = 0; i < addresses.length; i++) {
+            _allowList[addresses[i]] = numAllowedToMint;
+        }
     }
 
-    function isWhitelisted(address _NftContracts) public view returns (bool) {
-    for (uint i = 0; i < whitelistedNFTs.length; i++) {
-      if (whitelistedNFTs[i] == _NftContracts) {
-          return true;
-      }
+    function setIsAllowListActive(bool _isAllowListActive) external onlyOwner {
+        isAllowListActive = _isAllowListActive;
     }
-    return false;
-  }
 
     /**
      * @dev Creates a market item listing, requiring a listing fee and transfering the NFT token from
@@ -79,21 +73,16 @@ contract Marketplace is ReentrancyGuard, Ownable {
         uint256 tokenId,
         uint256 price
     ) public payable nonReentrant returns (uint256) {
-        if(onlyWhitelisted == true) {
-            require(isWhitelisted(msg.sender), "NFT Contract is not whitelisted");
-        }
+        require(isAllowListActive, "Allow list is not active");
         require(price > 0, "Price must be at least 1 wei");
         require(msg.value >= 0, "Price must be equal to listing price");
         _marketItemIds.increment();
         uint256 marketItemId = _marketItemIds.current();
 
-        address creator = NFT(nftContractAddress).getTokenCreatorById(tokenId);
-
         marketItemIdToMarketItem[marketItemId] = MarketItem(
             marketItemId,
             nftContractAddress,
             tokenId,
-            payable(creator),
             payable(msg.sender),
             payable(address(0)),
             price,
@@ -101,13 +90,11 @@ contract Marketplace is ReentrancyGuard, Ownable {
             false
         );
 
-        //IERC721(nftContractAddress).transferFrom(msg.sender, address(this), tokenId);
 
         emit MarketItemCreated(
             marketItemId,
             nftContractAddress,
             tokenId,
-            payable(creator),
             payable(msg.sender),
             payable(address(0)),
             price,
@@ -282,9 +269,8 @@ contract Marketplace is ReentrancyGuard, Ownable {
 
 /* 
 [
-    "0x5A86858aA3b595FD6663c2296741eF4cd8BC4d01",
+    "0x9bF88fAe8CF8BaB76041c1db6467E7b37b977dD7",
     "0x99CF4c4CAE3bA61754Abd22A8de7e8c7ba3C196d",
-    "0xa131AD247055FD2e2aA8b156A11bdEc81b9eAD95",
-    "0x9ecEA68DE55F316B702f27eE389D10C2EE0dde84"
+    "0x1bB5bf909d1200fb4730d899BAd7Ab0aE8487B0b"
 ] 
 */
