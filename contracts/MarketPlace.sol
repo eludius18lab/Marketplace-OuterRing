@@ -1,4 +1,4 @@
-// SPDX-License-Identifier: MIT
+/ SPDX-License-Identifier: MIT
 pragma solidity ^0.8.4;
 
 import "@openzeppelin/contracts/token/ERC721/ERC721.sol";
@@ -14,14 +14,16 @@ contract Marketplace is ReentrancyGuard, Ownable {
     Counters.Counter private _tokensCanceled;
 
     address payable private owners;
-    bool public isAllowListActive = false;    
+    /**
+    * @dev Declares a Boolean for Whitelisted Addresses
+    bool public isAllowListActive = false; 
+    */
+      
 
     // Challenge: make this price dynamic according to the current currency price
-    uint256 private listingFee = 0.045 ether;
+    uint256 private listingFee = 1 ether;
 
     mapping(uint256 => MarketItem) private marketItemIdToMarketItem;
-
-//Checking
     mapping(address => uint256) private _allowList;
 
     struct MarketItem {
@@ -54,6 +56,10 @@ contract Marketplace is ReentrancyGuard, Ownable {
         return listingFee;
     }
 
+    /**
+     * @dev Creates a Whitelist to allow only whitelisted NFT Smart Contracts Whitelisted
+    
+
     function setAllowList(address[] calldata addresses, uint8 numAllowedToMint) external onlyOwner {
         for (uint256 i = 0; i < addresses.length; i++) {
             _allowList[addresses[i]] = numAllowedToMint;
@@ -64,6 +70,9 @@ contract Marketplace is ReentrancyGuard, Ownable {
         isAllowListActive = _isAllowListActive;
     }
 
+    */
+
+
     /**
      * @dev Creates a market item listing, requiring a listing fee and transfering the NFT token from
      * msg.sender to the marketplace contract.
@@ -73,9 +82,13 @@ contract Marketplace is ReentrancyGuard, Ownable {
         uint256 tokenId,
         uint256 price
     ) public payable nonReentrant returns (uint256) {
+        /**
+        * @dev Require Whitelisted addresses
         require(isAllowListActive, "Allow list is not active");
+        */
         require(price > 0, "Price must be at least 1 wei");
-        require(msg.value >= 0, "Price must be equal to listing price");
+        //require(msg.value >= 0, "Price must be equal to listing price");
+        require(msg.value == listingFee, "Price must be equal to listing price");
         _marketItemIds.increment();
         uint256 marketItemId = _marketItemIds.current();
 
